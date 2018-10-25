@@ -7,11 +7,6 @@ from scipy.integrate import simps
 Set of functions which can be used to calculate likelihoods.
 """       
 
-def norm_dist(x, mu, sigma):
-    norm = 1. / np.sqrt(2. * np.pi * sigma**2.)
-    exp_factor = np.exp(-(x - mu)**2. / (2. * sigma**2.))
-    return norm * exp_factor
-
 def clean_array(inp_array):
     """Limit the number of magnitudes (to 20 orders below maximum) in the input
     array and then normalize it. This is helpful for dealing with likelihoods
@@ -77,17 +72,15 @@ def compute_L(y_obs, y_pred, noise):
     ln_L = np.log(1. / (2 * np.pi * noise**2.)) - (y_obs - y_pred)**2. / (2. * noise**2.) 
     return np.sum(ln_L)
 
-def marginalize(ln_L_of_theta, theta, theta_mu, theta_sig):
+def marginalize(ln_L_of_theta, theta):
     
     ln_L_of_theta[ln_L_of_theta < max(ln_L_of_theta) -20.] = max(ln_L_of_theta) - 20.
     
-    prob = norm_dist(theta,theta_mu,theta_sig)
-    norm = simps(prob, theta)
+    norm = simps(np.ones(len(theta)), theta)
     
     max_ln_L = max(ln_L_of_theta)
     ln_l_aux = ln_L_of_theta - max_ln_L
-    ln_out = np.log(simps(np.exp(ln_l_aux),theta)) + max_ln_L - np.log(norm)
-    
+    ln_out = np.log(simps(np.exp(ln_l_aux),theta)) + max_ln_L - np.log(norm)    
     return ln_out
     
     

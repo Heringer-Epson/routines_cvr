@@ -1,4 +1,5 @@
-import os
+import sys, os
+import cPickle
 import numpy as np
 import nibabel as nib
 
@@ -45,8 +46,36 @@ class Read_Data(object):
         self.load_data()
         self.make_time_array()
         return self._signal, self._pCO2, self._time_array
-        
-if __name__ == '__main__':
-    Read_Data()
 
 
+def get_convolved_models(_run):
+    fpath = os.path.join('./../OUTPUT_FILES/RUNS/' + _run.subdir, 'models.pkl')        
+    if os.path.isfile(fpath): 
+        with open(fpath, 'r') as f:
+            models = cPickle.load(f)
+    else:
+        raise ValueError(
+          'File ' + fpath + ' has not been created yet. Please run master.py '\
+          + 'with flag run_models=True.')
+
+    #Check if the parameter space targeted is the same as the one used to
+    #compute likelihoods.
+    if not np.array_equal(models['parspace'],_run.parspace):
+        raise ValueError(
+          'Frror: parspace defined in input_params.py does not match the '
+          + 'array saved in models.pkl. Please re-run master.py with flag '
+          + 'run_models=True')    
+
+    return models
+
+def pars2label(_A,_tau,_B):
+    p1 = str(format(_A, '.6f'))
+    p2 = str(format(_tau, '.6f'))
+    p3 = str(format(_B, '.6f'))
+    return 'm_' + p1 + '_' + p2 + '_' + p3
+    
+    
+    
+    
+    
+    
