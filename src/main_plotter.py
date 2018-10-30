@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from util_plots.plot_models import Plot_Models
-
+from util_plots.plot_voxel import Plot_Signal
+from util_plots.plot_likelihood import Plot_Contour
 
 class Main_Plotter(object):
     """
@@ -16,7 +17,8 @@ class Main_Plotter(object):
         Instance of the Input_Parameters class defined in input_params.py.
     """    
     def __init__(self, _run):
-        pass
+        Plot_Signal(_run, 3523)
+        Plot_Contour(_run, 3523)
         #Plot_Models(_run)
 
 

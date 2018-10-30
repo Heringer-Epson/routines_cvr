@@ -22,9 +22,14 @@ class Input_Parameters(object):
         self.smoothing_window = 21
 
         #Default parameter space to explore:
-        self.A = np.arange(0., 3., 0.05)
-        self.tau = np.logspace(-2., 0., 20)
-        self.B = np.arange(0., 150., 10.)
+        #self.A = np.arange(0., 3., 0.05)
+        #self.tau = np.logspace(-2., 0., 20)
+        #self.B = np.arange(0., 150., 10.)
+
+        #self.A = np.arange(-3., 3., 0.01)
+        self.A = np.arange(0.1, .2, 0.01)
+        self.tau = np.logspace(-2., 2., 80)
+        self.B = np.arange(80., 100., 1.)
         
         self.parspace = np.asarray(
           [(_A,_tau,_B) for _A in self.A for _tau in self.tau for _B in self.B])
@@ -45,6 +50,7 @@ class Input_Parameters(object):
         if case == 'default':
             self.subdir = 'test1/'    
             self.time_step = 2.4 #in units of second.
+            self.region_to_fit = 'all'
             self.show_fig = True
             self.save_fig = False
                 

@@ -6,7 +6,6 @@ from define_domain import Define_Domain
 from make_A_tau_model import Save_Models
 from compute_likelihood import Compute_Likelihoods
 from main_plotter import Main_Plotter
-
 from lib.data_handling import Read_Data
 
 class Master(object):
@@ -75,7 +74,7 @@ class Master(object):
         else:
             if self.run_models:
                 Save_Models(self.run)                                          
-            Compute_Likelihoods(self.run, 'step').run_task()
+            Compute_Likelihoods(self.run).run_task()
 
         if self.plots_flag:
             Main_Plotter(self.run)            
@@ -84,3 +83,12 @@ if __name__ == '__main__':
     Master(case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
            step=(150., 240.), ramp=(460.,670.), inspect_domain=False,
            run_models=False, plots_flag=False)
+
+#Use derivative to not worry about baseline.           
+#Check zero at the beginning of all models.
+#model sigma to include pCO2 and signal noise.
+#make histogram of best fits.
+#Marginalization gives significantly diff results. Check. maybe not.
+#all B are plotted, alpha/color coded by likelihood.
+#OPtimize model calculation with Cython?
+#Read_Data can be a function, not a class.

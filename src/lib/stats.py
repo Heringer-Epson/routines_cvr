@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import numpy as np
 import pandas as pd
+import matplotlib._cntr as cntr
+import matplotlib.pyplot as plt
 from scipy.integrate import simps
 
 """
@@ -37,9 +39,12 @@ def get_contour_levels(inp_array, contour):
 
 def plot_contour(ax, x, y, z, c, add_max=True, show_fig=False):
 
+    if ax is None:
+        ax = plt.axes()
+
     x_best = x[np.argmax(z)]
     y_best = y[np.argmax(z)]
-
+    
     try:
         contour_list = [0.95, 0.68, 0.] 
         z = clean_array(z)
@@ -59,13 +64,44 @@ def plot_contour(ax, x, y, z, c, add_max=True, show_fig=False):
         #Estimate parameter uncertainty from ellipsis path.
         p = cs.collections[0].get_paths()[0]
         v = p.vertices
+        print p
+        print v
         x_cont, y_cont = v[:,0], v[:,1]    
         x_unc = (max(x_cont) - x_best, x_best - min(x_cont))
         y_unc = (max(y_cont) - y_best, y_best - min(y_cont))
     except:
         x_unc, y_unc = (np.nan,np.nan), (np.nan,np.nan)
+
+    if ax is None:
+        del ax
     
     return x_best, x_unc[0], x_unc[1], y_best, y_unc[0], y_unc[1]
+
+
+def get_contour_uncertainties(x, y, z):
+
+    x_best = x[np.argmax(z)]
+    y_best = y[np.argmax(z)]
+    
+    try:
+        contour = 0.68
+        z = clean_array(z)
+        _x, _y = np.unique(x), np.unique(y)       
+        X = x.reshape(len(_x),len(_y))
+        Y = y.reshape(len(_x),len(_y))
+        qtty = z.reshape((len(_x), len(_y)))
+        level = get_contour_levels(z, contour)
+
+        cs = cntr.Cntr(X, Y, qtty)
+        nlist = cs.trace(level, level, 0)[0]
+        x_cont, y_cont = nlist[:,0], nlist[:,1]
+        x_unc = (max(x_cont) - x_best, x_best - min(x_cont))
+        y_unc = (max(y_cont) - y_best, y_best - min(y_cont))
+    except:
+        x_unc, y_unc = (np.nan,np.nan), (np.nan,np.nan)
+
+    return x_best, x_unc[0], x_unc[1], y_best, y_unc[0], y_unc[1]
+
 
 def compute_L(y_obs, y_pred, noise):
     """..."""

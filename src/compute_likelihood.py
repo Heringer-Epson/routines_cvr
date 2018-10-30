@@ -2,143 +2,110 @@ import sys, os
 import cPickle
 import numpy as np
 import lib.stats as stats
-import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
-from util_plots.plot_voxel import Plot_Signal
-from util_plots.plot_example_contour import Plot_Contour
 from lib import stats
-from lib.data_handling import get_convolved_models
-from lib.data_handling import pars2label
+from lib import data_handling 
 
-def norm_dist(x, mu, sigma):
-    norm = 1. / np.sqrt(2. * np.pi * sigma**2.)
-    exp_factor = np.exp(-(x - mu)**2. / (2. * sigma**2.))
-    return norm * exp_factor
-    
 def fv(_var):
-    return str(format(_var, '.4f')) + ','
+    return ',' + str(format(_var, '.6f'))
 
-def vars2line(_idx, _vars):
+def vars2line1(_idx, _vars):
     _A, A_l, A_u, _tau, tau_l, tau_u = _vars
-    _line = ('\n' + fv(_A) + fv(A_l) + fv(A_u) + fv(_tau) + fv(tau_l) + fv(tau_u))
-    return _line[0:-1]
+    return fv(_A) + fv(A_l) + fv(A_u) + fv(_tau) + fv(tau_l) + fv(tau_u)
+
+def vars2line2(_idx, _vars):
+    _A, _tau, _B = _vars
+    return fv(_A) + fv(_tau) + fv(_B)
 
 class Compute_Likelihoods(object):
     """
     Code Description
     ----------    
-    TBW.
-
+    Loads a .pkl file containing models for each cell of the parameter space
+    and assign (compute) a likelihood to each model. Likelihoods are computed
+    using a Bayesian method. The likelihood depends on the combined probability
+    of the points belonging to a region (in time) of the datasample. This
+    region is defined as an input parameter (self._run.region_to_fit). For a
+    given model, the probability of each point is computed by assuming that the
+    data follows a (normal) gaussian, centered at that data point and whose
+    sigma is determined by the noise. The code marginalises the probability
+    over the 'baseline' variable.
+    
     Parameters
     ----------
-    TBW.
+    _run : object
+      instance of input_params containing the data in each case of study.
+
+    Outputs:
+    --------
+    ./../OUTPUT_FILES/RUNS/' + self._run.subdir, 'most_likely_A_tau.csv     
+    ./../OUTPUT_FILES/RUNS/' + self._run.subdir, 'most_likely_A_tau_B.csv     
     """
-    def __init__(self, _run, mode):
-        self._run = _run
-        self.mode = mode
-        
-        self.fig = plt.figure(figsize=(10,10))
-        self.ax = self.fig.add_subplot(111)
-        
-        self.models = get_convolved_models(self._run)        
+    def __init__(self, _run):
+        self._run = _run        
+        self.models = data_handling.get_convolved_models(self._run)        
 
     def iterate_voxels(self):
-        columns = zip(*self._run.parspace)
-        As, taus = np.array(columns[0]), np.array(columns[1])
+        #Here, the suffixes 1 and 2 denote marginalised and non-marginalised,
+        #respectively.
         
-        fpath = os.path.join(
+        L = {}
+        L['parspace'] = self._run.parspace
+        L['parspace_reduced'] = self._run.parspace_reduced
+        columns = zip(*self._run.parspace_reduced)
+        As, taus = np.array(columns[0]), np.array(columns[1])
+        cond = data_handling.region2cond(self._run)
+        
+        fpath1 = os.path.join(
           './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'most_likely_A_tau.csv')
-        with open(fpath, 'w') as out:
-            out.write('voxel,A,A_unc_l,A_unc_u,tau,tau_unc_l,tau_unc_u')
-    
-            if self.mode == 'step':
-                #cond = ((self._run.time >= self._run.step[0])
-                #        & (self._run.time <= self._run.step[1]))
-
-                #cond = ((self._run.time >= self._run.ramp[0])
-                #        & (self._run.time <= self._run.ramp[1]))
-
-                cond = ((self._run.time >= 0.) & (self._run.time <= 1.e6))                    
+        fpath2 = os.path.join(
+          './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'most_likely_A_tau_B.csv')
+        with open(fpath1, 'w') as out1, open(fpath2, 'w') as out2:
+            out1.write('voxel,A,A_unc_l,A_unc_u,tau,tau_unc_l,tau_unc_u')
+            out2.write('voxel,A,tau,B')
          
             #for idx_space in range(self._run.signal_s.shape[0]):
             #    bold_voxel = self._run.signal_s[idx_space,:]
 
-            for idx_space in range(1): #fewer voxels.
-                                
-                #bold_voxel = self._run.signal_ns[15821,:] #3523
-                bold_voxel = self._run.signal_ns[3523,:] #
+            for idx_space in [3523]: #fewer voxels. 15821
+                bold_voxel = self._run.signal_ns[idx_space,:]
                 y_obs = bold_voxel[cond]
                 y_obs_unc = self._run.pCO2_noise[cond]   
                 
-                ln_L_coll = []
+                ln_L1, ln_L2 = [], []
                 for (A,tau) in self._run.parspace_reduced:
                     
-                    ln_L_marg = np.array([stats.compute_L(
-                      y_obs,self.models[pars2label(A,tau,B)][cond],y_obs_unc)
-                      for B in self._run.B])
+                    #[0:] is so that the first data point is not include. By
+                    #definition, its convolution is always zero.
+                    ln_L = np.array([stats.compute_L(
+                      y_obs,self.models[
+                        data_handling.pars2label(A,tau,B)][cond][0:],y_obs_unc[0:])
+                        for B in self._run.B])
+                    ln_L1.append(stats.marginalize(ln_L, self._run.B))
+                    ln_L2.extend(ln_L)
                     
-                    if ((A == 0.25) & (tau == 1.)):
-                        print '\n', ln_L_marg
-                    
-                    ln_L_coll.append(stats.marginalize(ln_L_marg, self._run.B))
+                ln_L1, ln_L2 = np.array(ln_L1), np.array(ln_L2)
+                L['i_' + str(idx_space)] = ln_L1
+                L['i_red_' + str(idx_space)] = ln_L2
                 
-
+                outvars = stats.get_contour_uncertainties(As,taus,ln_L1)
+                print outvars
                 
-                ln_L_coll = np.array(ln_L_coll)
-                idx_max = ln_L_coll.argmax()
-                A_max, tau_max = self._run.parspace_reduced[idx_max]
-                best_label = pars2label(A_max, tau_max, 90.)                
-                Plot_Signal(self._run.time, bold_voxel, self.models[best_label], self._run.pCO2)
-                
-           
                 #outvars = stats.plot_contour(
-                #  self.ax,As,taus,ln_L_of_A_tau,'b',add_max=True,show_fig=False)
-                #line = vars2line(idx_space,outvars)
-                #out.write(line)
-                            
-                #Check zero at the beginning of all models.
-                #model sigma to include pCO2 and signal noise.
-                #Make plotting routine to show one example of cvr best fit and contours.
-                #make histogram of best fits.
-                #Models are missing a baseline value....
-                #Use pkl run for everything.
-                #Marginalization gives significantly diff results. Check.
-                #How to make plot for marginalized?
+                #  None,As,taus,ln_L1,'b',add_max=True,show_fig=False)
+                #line = vars2line1(idx_space,outvars)
+                #out1.write('\n' + str(idx_space) + line)
+                #print outvars
 
-    #No marginalization.
-    '''
-    def iterate_voxels(self):
-        columns = zip(*self._run.parspace)
-        As, taus = np.array(columns[0]), np.array(columns[1])
-        
-        fpath = os.path.join(
-          './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'most_likely_A_tau.csv')
-        with open(fpath, 'w') as out:
-            out.write('voxel,A,A_unc_l,A_unc_u,tau,tau_unc_l,tau_unc_u')
-    
-            if self.mode == 'step':
-                cond = ((self._run.time >= 0.) & (self._run.time <= 1.e6))                    
-
-            for idx_space in range(1): #fewer voxels.
-                bold_voxel = self._run.signal_ns[3523,:] #
-
-                ln_L_coll = []
-                for (A,tau,B) in self._run.parspace:
-                    label = pars2label(A,tau,B)
-                    y_obs = bold_voxel[cond]
-                    y_obs_unc = self._run.pCO2_noise[cond]       
-                    ln_L = stats.compute_L(y_obs,self.models[label][cond],y_obs_unc)
-                    ln_L_coll.append(ln_L)
-                
-                ln_L_coll = np.array(ln_L_coll)
-                idx_max = ln_L_coll.argmax()
+                idx_max = ln_L2.argmax()
                 A_max, tau_max, B_max = self._run.parspace[idx_max]
-                best_label = pars2label(A_max, tau_max, B_max)                
-                Plot_Signal(self._run.time, bold_voxel, self.models[best_label], self._run.pCO2)
-    '''
-            
+                line = vars2line2(idx_space,(A_max,tau_max,B_max))
+                out2.write('\n' + str(idx_space) + line)
 
+        fpath = os.path.join(
+          './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'likelihoods.pkl')
+        with open(fpath, 'w') as output:
+            cPickle.dump(L, output, cPickle.HIGHEST_PROTOCOL)    
 
     def run_task(self):
         self.iterate_voxels()
-

@@ -74,8 +74,14 @@ def pars2label(_A,_tau,_B):
     p3 = str(format(_B, '.6f'))
     return 'm_' + p1 + '_' + p2 + '_' + p3
     
-    
-    
-    
-    
+def region2cond(_run):
+    if _run.region_to_fit == 'step':
+        cond = ((_run.time >= _run.step[0]) & (_run.time <= _run.step[1]))
+    elif _run.region_to_fit == 'ramp':
+        cond = ((_run.time >= _run.ramp[0]) & (_run.time <= _run.ramp[1]))
+    elif _run.region_to_fit == 'all':
+        cond = np.ones(len(_run.time), dtype=bool)  
+    return cond
+
+
     
