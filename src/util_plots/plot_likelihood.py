@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
 import sys, os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
 
 import cPickle
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import MultipleLocator
-from lib import stats
+import stats
+import data_handling 
 
 mpl.rcParams['mathtext.fontset'] = 'stix'
 mpl.rcParams['mathtext.fontset'] = 'stix'
@@ -33,10 +34,16 @@ class Plot_Contour(object):
       + 'Fig_A_tau_contour.csv')
     """        
     def __init__(self, _run, _idx_space):
-                
+        print 'Plotting confidence contour...'
         self._run = _run
         self._idx_space = _idx_space
 
+        fpath_L = './../OUTPUT_FILES/RUNS/' + _run.subdir + 'PICKLES/likelihoods.pkl'
+        fpath_S = './../OUTPUT_FILES/RUNS/' + _run.subdir + 'PICKLES/smooth.pkl'
+        fL, fS = open(fpath_L , 'r'), open(fpath_S , 'r')
+        self.L, self.S = cPickle.load(fL), cPickle.load(fS) 
+        fL.close(), fS.close()
+        
         self.fig = plt.figure(figsize=(10,10))
         self.ax = self.fig.add_subplot(111)
         
@@ -67,23 +74,19 @@ class Plot_Contour(object):
         self.ax.yaxis.set_minor_formatter(mpl.ticker.NullFormatter())
     
     def plot_quantities(self):
-        fpath = os.path.join('./../OUTPUT_FILES/RUNS/' + self._run.subdir,
-                             'likelihoods.pkl')        
-        with open(fpath, 'r') as f:
-            L = cPickle.load(f)
-            ln_L = L['i_' + str(self._idx_space)]
-     
-        columns = zip(*self._run.parspace_reduced)
+        ln_L = self.L['likelihood_list_' + str(self._idx_space)]
+        columns = zip(*self._run.parspace_Atau)
         x, y = np.array(columns[0]), np.array(columns[1])
         stats.plot_contour(self.ax, x, y, ln_L, 'b', add_max=True)    
 
     def manage_output(self):
         if self._run.save_fig:
             fpath = os.path.join('./../OUTPUT_FILES/RUNS/' + self._run.subdir,
-                                 'Figures/Fig_A_tau_contour.csv')
+                                 'FIGURES/Fig_A_tau_contour.csv')
             plt.savefig(fpath, format='pdf')
         if self._run.show_fig:
             plt.show() 
+        plt.close()
         
     def make_plot(self):
         self.set_fig_frame()

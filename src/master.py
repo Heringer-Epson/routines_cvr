@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 from input_params import Input_Parameters
-from norm_and_smooth import Norm_Smooth
 from define_domain import Define_Domain
-from make_A_tau_model import Save_Models
-from compute_likelihood import Compute_Likelihoods
+from collect_data import Collect_Data
+from norm_and_smooth import Norm_Smooth
+from make_tau_interpolator import Tau_Interpolator
+from estimate_bestpars import Estimate_Bestpars
+from run_MCMC import Compute_Likelihoods
 from main_plotter import Main_Plotter
-from lib.data_handling import Read_Data
 
 class Master(object):
     """
@@ -49,46 +50,49 @@ class Master(object):
     --------
     './../OUTPUT_FILES/RUNS/' + subdir (where subdir is set in input_params for
     each "case").
-
     """
     
-    def __init__(self, case, dirpath, rest, step, ramp, inspect_domain, 
-                 run_models, plots_flag):
+    def __init__(
+      self, case, dirpath, rest, norest, step, ramp, do_inspect_domain, 
+      do_collect_data, do_smooth, do_run_models, do_compute_likelihood,
+      do_make_plots):
         
-        self.inspect_domain = inspect_domain
-        self.run_models = run_models
-        self.plots_flag = plots_flag
+        self.do_inspect_domain = do_inspect_domain
+        self.do_collect_data = do_collect_data
+        self.do_smooth = do_smooth
+        self.do_run_models = do_run_models
+        self.do_compute_likelihood = do_compute_likelihood
+        self.do_make_plots = do_make_plots
         
-        self.run = Input_Parameters(case,dirpath,rest,step,ramp)
+        self.run = Input_Parameters(case,dirpath,rest,norest,step,ramp)
         self.run_master()
 
     def run_master(self):       
-        
-        self.run.signal, self.run.pCO2, self.run.time =\
-          Read_Data(self.run).run_task()
-        self.run.signal_n, self.run.signal_ns, self.run.signal_sn_unc,\
-          self.run.pCO2_s, self.run.pCO2_noise = Norm_Smooth(self.run).run_task()
 
-        if self.inspect_domain:
-            Define_Domain(self.run)
-        else:
-            if self.run_models:
-                Save_Models(self.run)                                          
-            Compute_Likelihoods(self.run).run_task()
-
-        if self.plots_flag:
+        if self.do_collect_data:
+            Collect_Data(self.run)
+            if self.do_inspect_domain:
+                Define_Domain(self.run)
+        if self.do_smooth:
+            Norm_Smooth(self.run)
+        if self.do_run_models:
+            Tau_Interpolator(self.run)
+        if self.do_compute_likelihood:
+            Estimate_Bestpars(self.run)
+            Compute_Likelihoods(self.run)
+            pass
+        if self.do_make_plots:
             Main_Plotter(self.run)            
                     
 if __name__ == '__main__':  
-    Master(case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
-           step=(150., 240.), ramp=(460.,670.), inspect_domain=False,
-           run_models=False, plots_flag=False)
+    #Master(
+    #  case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
+    #  norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
+    #  do_inspect_domain=False, do_collect_data=False, do_smooth=False,
+    #  do_run_models=False, do_compute_likelihood=False, do_make_plots=True)
 
-#Use derivative to not worry about baseline.           
-#Check zero at the beginning of all models.
-#model sigma to include pCO2 and signal noise.
-#make histogram of best fits.
-#Marginalization gives significantly diff results. Check. maybe not.
-#all B are plotted, alpha/color coded by likelihood.
-#OPtimize model calculation with Cython?
-#Read_Data can be a function, not a class.
+    Master(
+      case='patient', dirpath='./../data_test/patient1/', rest=(0., 110.),
+      norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
+      do_inspect_domain=False, do_collect_data=False, do_smooth=False,
+      do_run_models=False, do_compute_likelihood=True, do_make_plots=False)

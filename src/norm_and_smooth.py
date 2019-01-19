@@ -1,5 +1,10 @@
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'lib'))
+
 import numpy as np
+import cPickle
 from scipy.signal import savgol_filter
+import data_handling 
 
 def compute_rms(y_data, y_smot, x_data, x_bin):
     """
@@ -41,35 +46,36 @@ class Norm_Smooth(object):
     """   
         
     def __init__(self, _run):
-        self._run = _run
-        self.signal_n, self.signal_ns, self.signal_sn_unc = None, None, None
-        self._pCO2_s, self.pCO2_noise = None, None
+        print 'Smoothing the data...'
+        S = {}
+        fpath_D = './../OUTPUT_FILES/RUNS/' + _run.subdir + 'PICKLES/data.pkl'
+        with open(fpath_D, 'r') as fD:
+            D = cPickle.load(fD)
+            
+            #Copy a few relevant data from data.pkl into the smooth dict.
+            S['time'], S['pCO2'] = D['time'], D['pCO2']
+            
+            #Compute the mean signal in time for each voxel and divide each voxel's
+            #signal by its mean in time. Do the latter for all time steps.
+            S['signal_n'] = np.zeros(shape=D['signal'].shape)
+            bold_median = np.median(D['signal'], axis=1)
+            for idx_time in range(D['signal'].shape[1]):
+                S['signal_n'][:,idx_time] = np.divide(
+                  D['signal'][:,idx_time],bold_median) * 100.
 
-    def normalize_data(self):
-        #Compute the mean signal in time for each voxel and divide each voxel's
-        #signal by its mean in time. Do the latter for all time steps.
-        self.signal_n = np.copy(self._run.signal)
-        bold_median = np.median(self._run.signal, axis=1)
-        for idx_time in range(self._run.signal.shape[1]):
-            self.signal_n[:,idx_time] = np.divide(
-              self._run.signal[:,idx_time],bold_median) * 100.
+            #Smooth the signal.
+            S['signal_ns'] = savgol_filter(S['signal_n'],_run.smoothing_window,3)
+            S['pCO2_s'] = savgol_filter(S['pCO2'],_run.smoothing_window,3)        
+        
+            #Estimate noise
+            S['pCO2_noise'] = compute_rms(S['pCO2'],S['pCO2_s'],S['time'],10.)
+            S['signal_noise'] = np.zeros(
+              shape=(D['signal'].shape[0],D['signal'].shape[1]))
+            for idx_space in range(D['signal'].shape[0]):
+                S['signal_noise'][idx_space,:] = compute_rms(
+                S['signal_n'][idx_space,:],S['signal_ns'][idx_space,:],S['time'],10.)
+        
+            data_handling.save_pickle(_run.subdir, 'smooth.pkl', S)
+        print '    Done.\n'
 
-    def smooth(self):
-        self.signal_ns = savgol_filter(
-          self.signal_n,self._run.smoothing_window,3)
-        self._pCO2_s = savgol_filter(
-          self._run.pCO2,self._run.smoothing_window,3)        
-    
-    def estimate_noise(self):
-        self.pCO2_noise = compute_rms(
-          self._run.pCO2,self._pCO2_s,self._run.time,10.)
-        self.signal_noise = compute_rms(
-          self.signal_n,self.signal_ns,self._run.time,10.)
-    
-    def run_task(self):
-        self.normalize_data()
-        self.smooth()
-        self.estimate_noise()
-        return self.signal_n, self.signal_ns, self.signal_sn_unc,\
-               self._pCO2_s, self.pCO2_noise
                

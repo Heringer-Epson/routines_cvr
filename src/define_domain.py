@@ -1,4 +1,5 @@
 import os
+import cPickle
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
@@ -29,10 +30,8 @@ class Define_Domain(object):
         
     def __init__(self, _run):
         self._run = _run
-        
         fig = plt.figure(figsize=(10,10))
         self.ax = fig.add_subplot(111)
-        
         self.make_plot()
 
     def set_fig_frame(self):        
@@ -58,13 +57,17 @@ class Define_Domain(object):
         self.ax.yaxis.set_minor_locator(MultipleLocator(1))
         self.ax.yaxis.set_major_locator(MultipleLocator(5))
 
-    def plot_data(self):
-        self.ax.plot(self._run.time, self._run.pCO2_s, ls='-', lw=1.5, color='r')
+    def retrieve_data(self):
 
-        self.ax.errorbar(
-          self._run.time, self._run.pCO2, yerr=self._run.pCO2_noise, marker='o',
-          ls='None', markersize=1.8, color='r', elinewidth=0.5, capsize=0.,
-          alpha=0.4)
+        #Load observational data.
+        fpath_D = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'PICKLES/data.pkl'
+        fD = open(fpath_D, 'r')
+        self.D = cPickle.load(fD)
+        fD.close()        
+
+    def plot_data(self):
+        t, pCO2 = self.D['time'], self.D['pCO2']
+        self.ax.plot(t, pCO2, ls='-', lw=1.5, color='r')
 
     def manage_output(self):
         if self._run.save_fig:
@@ -76,5 +79,6 @@ class Define_Domain(object):
         
     def make_plot(self):
         self.set_fig_frame()
+        self.retrieve_data()
         self.plot_data()
         self.manage_output()
