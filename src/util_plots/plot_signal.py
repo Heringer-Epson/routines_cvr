@@ -83,19 +83,25 @@ class Plot_Signal(object):
         
         #Load best pars.
         fpath = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'most_likely_pars.csv'
-        tau, A, B = np.loadtxt(
-          fpath, skiprows=1, delimiter=',', usecols=(1,4,7), unpack=True)
-        self.tau_best, self.A_best, self.B_best =\
-          tau[self._idx_space], A[self._idx_space], B[self._idx_space]
-          #tau[self._idx_space], A[self._idx_space], B[self._idx_space]
+        tau, A, B, C = np.loadtxt(
+          fpath, skiprows=1, delimiter=',', usecols=(1,4,7,10), unpack=True)
+        self.tau_best, self.A_best, self.B_best, self.C_best =\
+          tau[self._idx_space], A[self._idx_space], B[self._idx_space], C[self._idx_space]
 
         fpath_est = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'estimated_A_tau_B.csv'
         tau, A, B = np.loadtxt(
-          fpath_est, skiprows=1, delimiter=',', usecols=(1,2,3), unpack=True)
+          fpath_est, skiprows=1, delimiter=',', usecols=(1,2,4), unpack=True)
         self.tau_est, self.A_est, self.B_est =\
           tau[self._idx_space], A[self._idx_space], B[self._idx_space]
+        print self.tau_best, self.A_best, self.B_best, self.C_best
 
     def plot_quantities(self):
+
+        #self.tau_best, self.A_best, self.B_best, self.C_best =\
+        #1., 0., 93., self.C_best
+
+        #self.tau_best, self.A_best, self.B_best, self.C_best =\
+        #1., 0.2, 80., .03
 
         t, pCO2 = self.S['time'], self.S['pCO2']
         y = self.S['signal_ns'][self._idx_space,:]
@@ -106,7 +112,8 @@ class Plot_Signal(object):
         y_model_est = self.A_est * pCO2_conv_est + self.B_est
 
         pCO2_conv_best = self.I(t, self.tau_best)
-        y_model_best = self.A_best * pCO2_conv_best + self.B_best
+        y_model_best = (self.A_best * pCO2_conv_best
+                        + self.B_best+ self.C_best * t)
 
         self.ax.errorbar(
           t, y, yerr=yerr, ls='None', marker='o', color='k',
@@ -115,9 +122,6 @@ class Plot_Signal(object):
                      lw=2., label=r'Est fit')   
         self.ax.plot(t, y_model_best, ls='--', marker='None', color='firebrick',
                      lw=2., label=r'Best fit')   
-
-        #self.ax.plot(t, pCO2 + self.B_est, ls='-', marker='None',  lw=2., color='m',
-        #             label=r'pCO2$\ (\rm{mmHg})$')
                
         self.ax.legend(frameon=False, fontsize=20., numpoints=1, loc='best')            
 

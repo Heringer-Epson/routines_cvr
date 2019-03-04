@@ -80,19 +80,24 @@ class Master(object):
         if self.do_compute_likelihood:
             Estimate_Bestpars(self.run)
             Compute_Likelihoods(self.run)
-            pass
         if self.do_make_plots:
             Main_Plotter(self.run)            
                     
 if __name__ == '__main__':  
+    Master(
+      case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
+      norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
+      do_inspect_domain=False, do_collect_data=False, do_smooth=False,
+      do_run_models=False, do_compute_likelihood=False, do_make_plots=True)
+
     #Master(
-    #  case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
+    #  case='patient', dirpath='./../data_test/patient1/', rest=(0., 110.),
+    #  norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
+    #  do_inspect_domain=False, do_collect_data=False, do_smooth=False,
+    #  do_run_models=True, do_compute_likelihood=True, do_make_plots=False)
+
+    #Master(
+    #  case='tau', dirpath='./../data_test/tau-patient/', rest=(0., 120.),
     #  norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
     #  do_inspect_domain=False, do_collect_data=False, do_smooth=False,
     #  do_run_models=False, do_compute_likelihood=False, do_make_plots=True)
-
-    Master(
-      case='patient', dirpath='./../data_test/patient1/', rest=(0., 110.),
-      norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
-      do_inspect_domain=False, do_collect_data=False, do_smooth=False,
-      do_run_models=False, do_compute_likelihood=True, do_make_plots=False)

@@ -54,7 +54,7 @@ class Tau_Interpolator(object):
         """
         t = self.D['time']
         pCO2 = self.D['pCO2']
-        t_pre = -500.
+        t_pre = -5000.
         rest_cond = ((t >= self._run.rest[0]) & (t <= self._run.rest[1]))
         rest_pCO2 = np.median(pCO2[rest_cond])
 

@@ -24,26 +24,25 @@ class Input_Parameters(object):
         #Default quantities are defined below.
         self.smoothing_window = 21
 
+        self.A_lim = (-1.,1.)
+        self.B_lim = (20.,180.)
+        self.C_lim = (-.2,.2)
+        self.tau_lim = (1.,500.)
         
-        self.A_step = 0.05
-        self.A = np.arange(-1., 1., self.A_step)
-        self.tau = np.logspace(0., 2., 100)
-        self.B = np.arange(78., 82., .1)
-        self.N_cells = float(len(self.A) * len(self.tau) * len(self.B))
-        
-        self.parspace = np.asarray(
-          [(_A,_tau,_B) for _A in self.A for _tau in self.tau for _B in self.B])
-        self.parspace_Atau = np.asarray(
-          [(_A,_tau) for _A in self.A for _tau in self.tau])
-        self.parspace_AB = np.asarray(
-          [(_A,_B) for _A in self.A for _B in self.B])
+        #self.A_lim = (-2.5,2.5)
+        #self.B_lim = (-50.,200.)
+        #self.C_lim = (-1.,1.)
+        #self.tau_lim = (0.1,1000.)
+        self.logtau_lim = (np.log10(self.tau_lim[0]),np.log10(self.tau_lim[1]))
+        self.tau = np.logspace(self.logtau_lim[0], self.logtau_lim[1], 100)
+        self.t_pivot = 400.
 
         #Initialize quantities to be compute.
         self.signal = None
 
         #Used to compute the default tomography analysis.
         if case == 'default':
-            self.subdir = 'test1/'    
+            self.subdir = 'healthy_updated/'    
             self.time_step = 2.4 #in units of second.
             #self.region_to_fit = 'all'
             self.region_to_fit = 'norest'
@@ -57,8 +56,15 @@ class Input_Parameters(object):
             self.region_to_fit = 'norest'
             self.show_fig = False
             self.save_fig = True
+
+        if case == 'tau':
+            self.subdir = 'tau-patient_updated/'    
+            self.time_step = 2.4 #in units of second.
+            #self.region_to_fit = 'all'
+            self.region_to_fit = 'norest'
+            self.show_fig = False
+            self.save_fig = True
                 
         create_run_dir('./../OUTPUT_FILES/RUNS/' + self.subdir)
-        print '    N parspace cells = ', int(self.N_cells)
         print '    Done.\n'
             

@@ -56,7 +56,7 @@ class Plot_Convolved(object):
         self.ax.set_xlabel(x_label, fontsize=fs)
         self.ax.set_ylabel(y_label, fontsize=fs)
         self.ax.set_xlim(-550., 900.)
-        self.ax.set_ylim(30., 55.)
+        self.ax.set_ylim(30., 65.)
         self.ax.tick_params(axis='y', which='major', labelsize=fs, pad=8)      
         self.ax.tick_params(axis='x', which='major', labelsize=fs, pad=8)
         self.ax.minorticks_off()
@@ -71,7 +71,7 @@ class Plot_Convolved(object):
     
     def plot_convolved_pCO2(self):
         t, pCO2 = self.D['time'], self.D['pCO2']
-        t_aux = np.arange(-500., 800, 2.4)
+        t_aux = np.arange(-2000., 800, 2.4)
 
         self.ax.errorbar(
           self.S['time'], self.S['pCO2'], yerr=self.S['pCO2_noise'], ls='None',
@@ -83,7 +83,7 @@ class Plot_Convolved(object):
               t_aux,self.I(t_aux, tau),marker='None',ls='-',color='r',
               lw=2., alpha=0.7, zorder=2)  
 
-        for tau in np.logspace(0., 2., 100):
+        for tau in np.logspace(self._run.logtau_lim[0], self._run.logtau_lim[1], 200):
             self.ax.plot(t_aux,self.I(t_aux, tau),marker='None',ls='-',color='grey',
                         lw=1., alpha=0.2, zorder=1) 
 

@@ -8,28 +8,60 @@ import stats
 import emcee
 import corner 
 import matplotlib.pyplot as plt
+from multiprocessing import Pool
+from functools import partial
 
 #http://dfm.io/emcee/current/user/line/
 
 #@profile
-def lnprob(theta, y, yerr, t, I):
-    tau, A, B = theta
-    if -10. < A < 10. and 10. < B < 200. and 1. < tau < 100.: #Priors.
+def lnprob(theta, y, yerr, t, I, tau_l, tau_u, A_l, A_u, B_l, B_u, C_l, C_u):
+    tau, A, B, C = theta
+    if (tau_l < tau < tau_u and A_l < A < A_u and B_l < B < B_u and C_l < C < C_u): #Priors.
         x_conv = I(t, tau)
-        return cf.lnlike(A, B, x_conv, y, yerr)
+        return cf.lnlike(A, B, C, t, x_conv, y, yerr)
     else:
-        return -np.inf    
+        return -np.inf  
 
-def pars2line(idx,tau,A,B):
+def pars2line(idx,tau,A,B,C,chi2):
     def S(p):
         if np.isnan(p):
             return ',NaN'
         else:
-            return ',' + str(format(p, ',f'))   
+            return ',' + str(format(p, '.4f'))   
     return (
       '\n' + str(idx) + S(tau[0]) + S(tau[1]) + S(tau[2]) + S(A[0]) + S(A[1])
-      + S(A[2]) + S(B[0]) + S(B[1]) + S(B[2]))
-      
+      + S(A[2]) + S(B[0]) + S(B[1]) + S(B[2]) + S(C[0]) + S(C[1]) + S(C[2])
+      + S(chi2))
+
+def apply_MCMC(S, I, thetas, t, tau_lim, A_lim, B_lim, C_lim, idx_space):
+    theta_est = thetas[idx_space]
+    if not np.isnan(theta_est[2]):
+        y = S['signal_ns'][idx_space,:]
+        yerr = S['signal_noise'][idx_space,:]
+        ndim, nwalkers = 4, 100
+        pos = [theta_est + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
+        sampler = emcee.EnsembleSampler(
+          nwalkers, ndim, lnprob, args=(y, yerr, t, I, tau_lim[0], 
+          tau_lim[1], A_lim[0], A_lim[1], B_lim[0], B_lim[1], C_lim[0], C_lim[1]))
+        sampler.run_mcmc(pos, 500)
+        samples = sampler.chain[:, 50:, :].reshape((-1, ndim))
+        tau_mcmc, A_mcmc, B_mcmc, C_mcmc = map(
+          lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
+          zip(*np.percentile(samples, [16, 50, 84], axis=0)))
+        #Compute chi2
+        x_conv = I(t, tau_mcmc[1])
+        chi2 = cf.chi2(A_mcmc[1], B_mcmc[1], C_mcmc[1], t, x_conv, y, yerr)
+        
+    #fig = corner.corner(
+    #  samples, labels=["$\\tau$", "$A$", "B"],
+    #  truths=[theta_est[0], theta_est[1], theta_est[2]])
+    #plt.show()
+
+    else:
+        val = (np.nan,np.nan,np.nan,np.nan,np.nan)
+        tau_mcmc, A_mcmc, B_mcmc, C_mcmc, chi2 = val, val, val, val    
+    return pars2line(idx_space, tau_mcmc, A_mcmc, B_mcmc, C_mcmc, chi2)
+
 class Compute_Likelihoods(object):
     """
     Code Description
@@ -69,7 +101,7 @@ class Compute_Likelihoods(object):
         #Load par estimative.
         fpath_est = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'estimated_A_tau_B.csv'
         self.tau_est, self.A_est, self.B_est = np.loadtxt(
-          fpath_est, skiprows=1, delimiter=',', usecols=(1,2,3), unpack=True)
+          fpath_est, skiprows=1, delimiter=',', usecols=(1,2,4), unpack=True)
 
         #Load interpolator for computing pCO2 convolutions.
         fpath_I = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'PICKLES/tau_interp.pkl'
@@ -79,68 +111,41 @@ class Compute_Likelihoods(object):
         
     def compute_best_pars(self):
 
-        print 'Calculating likelihoods...'
+        print 'Calculating likelihoods...'       
         fpath_out = './../OUTPUT_FILES/RUNS/' +self. _run.subdir + 'most_likely_pars.csv'
 
         with open(fpath_out, 'w') as out:
-            out.write('voxel,tau,tau_l,tau_u,A,A_l,A_u,B,B_l,B_u')
+            out.write('voxel,tau,tau_l,tau_u,A,A_l,A_u,B,B_l,B_u,C,C_l,C_u,chi2')
 
             N_voxels = self.S['signal_ns'].shape[0]      
             t = self.S['time']
+            #pCO2 = self.S['pCO2']
+            C_est = np.zeros(len(self.tau_est))
+
+            thetas = np.transpose(
+              np.array([self.tau_est, self.A_est, self.B_est, C_est]))
             
             start_time = time.time()
-            for idx_space in range(N_voxels):
+
+            #Parallel.
+            output = []
+            MCMC_given_idx = partial(
+              apply_MCMC, self.S, self.I, thetas, t, self._run.tau_lim,
+              self._run.A_lim, self._run.B_lim, self._run.C_lim)
+            pool = Pool(5)
+            output += pool.map(MCMC_given_idx,range(N_voxels))
+            #output += pool.map(MCMC_given_idx,range(1000))
+            pool.close()
+            pool.join()
+            for line in output:
+                out.write(line)   
+
+            #Non-parallel.
             #for idx_space in range(10):
-                print idx_space
-
-                #theta_est = np.array(
-                #  [self.tau_est[idx_space], self.A_est[idx_space],
-                #  self.B_est[idx_space]]) 
-
-                theta_est = np.array(
-                  [self.tau_est, self.A_est,
-                  self.B_est]) 
-                
-                if not np.isnan(theta_est[2]):
-
-                    y = self.S['signal_ns'][idx_space,:]
-                    yerr = self.S['signal_noise'][idx_space,:]
-                    
-
-                    
-                    start_time = time.time()
-                    
-                    ndim, nwalkers = 3, 100
-                    pos = [theta_est + 1e-4*np.random.randn(ndim) for i in range(nwalkers)]
-                    
-                    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
-                                                    args=(y, yerr, t, self.I))
-                    sampler.run_mcmc(pos, 500)
-                    
-                    samples = sampler.chain[:, 50:, :].reshape((-1, ndim))
-
-                    tau_mcmc, A_mcmc, B_mcmc = map(
-                      lambda v: (v[1], v[2]-v[1], v[1]-v[0]),
-                      zip(*np.percentile(samples, [16, 50, 84], axis=0)))
-
-                    #print tau_mcmc, A_mcmc, B_mcmc
-                    #print theta_est
-                    
-                    #fig = corner.corner(
-                    #  samples, labels=["$\\tau$", "$A$", "B"],
-                    #  truths=[theta_est[0], theta_est[1], theta_est[2]])
-                    #plt.show()
-                else:
-                    val = (np.nan,np.nan,np.nan)
-                    tau_mcmc, A_mcmc, B_mcmc = val, val, val
-                    
-                out.write(pars2line(idx_space, tau_mcmc, A_mcmc, B_mcmc))
-
-                                                    
-        delta_time = time.time() - start_time
-    
-        print '    Run took ', format(delta_time, '.1f'), 's'
-        #print '    Approx ', format(delta_time / float(N_voxels), '.6f'), ' s/voxel'
+            #    out.write(apply_MCMC(
+            #      self.S, self.I, thetas, t, self._run.tau_lim,
+            #       self._run.A_lim, self._run.B_lim, self._run.C_lim, idx_space))
+        print '    Run took ', format(time.time() - start_time, '.1f'), 's'
         print '    Done.\n'
 
     def run_model(self):

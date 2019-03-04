@@ -36,6 +36,7 @@ class Collect_Data(object):
         
         mask = mask_obj.get_data().astype(bool)
         signal = self.img.get_data()
+        print signal.shape
         M['signal'] = signal[mask].astype(float) #Data only includes voxels within the brain.
 
         #make a time array.
@@ -44,5 +45,16 @@ class Collect_Data(object):
         duration = N_time * dt
         M['time'] = np.arange(dt, duration + 1.e-3, dt)      
 
-        data_handling.save_pickle(_run.subdir, 'data.pkl', M)
+        #data_handling.save_pickle(_run.subdir, 'data.pkl', M)
+
+        #Collect tau and cvr data from Julien if available.
+        try:
+            tau_fpath = os.path.join(_run.dirpath, 'CVR_slopew.nii')
+            aux = nib.load(tau_fpath)
+            tau = aux.get_data()
+            taus = tau[mask].astype(float) #Seems like garb data. Not sure where
+            #the correct data is stored.
+        except:
+            pass
+
 
