@@ -26,7 +26,8 @@ class Input_Parameters(object):
 
         self.A_lim = (-1.,1.)
         self.B_lim = (20.,180.)
-        self.C_lim = (-.2,.2)
+        self.C_lim = (-100.,100.)
+        self.D_lim = (-100,100.)
         self.tau_lim = (1.,500.)
         
         #self.A_lim = (-2.5,2.5)
@@ -42,7 +43,7 @@ class Input_Parameters(object):
 
         #Used to compute the default tomography analysis.
         if case == 'default':
-            self.subdir = 'healthy_updated/'    
+            self.subdir = 'healthy/'    
             self.time_step = 2.4 #in units of second.
             #self.region_to_fit = 'all'
             self.region_to_fit = 'norest'
@@ -58,7 +59,7 @@ class Input_Parameters(object):
             self.save_fig = True
 
         if case == 'tau':
-            self.subdir = 'tau-patient_updated/'    
+            self.subdir = 'tau-patient/'    
             self.time_step = 2.4 #in units of second.
             #self.region_to_fit = 'all'
             self.region_to_fit = 'norest'

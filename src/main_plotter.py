@@ -23,17 +23,17 @@ class Main_Plotter(object):
     """    
     def __init__(self, _run):
         #Plot_Convolved(_run)
-        #Plot_Signal(_run, 25)
+        #Plot_Signal(_run, 0)
         #Plot_Contour(_run, 3523)
         #Plot_Models(_run, 3523)
         
-        Plot_Hist(_run)
-        Plot_Vars(_run)
-        Plot_Corner(_run)
+        #Plot_Hist(_run)
+        #Plot_Vars(_run)
+        #Plot_Corner(_run)
         #Plot_Brain(_run, 'A', 'est')
         Plot_Brain(_run, 'A', 'proc')
         #Plot_Brain(_run, 'tau', 'est')
-        Plot_Brain(_run, 'tau', 'proc')
+        #Plot_Brain(_run, 'tau', 'proc')
         #Plot_Brain(_run, 'B', 'est')
         #Plot_Brain(_run, 'B', 'proc')
         #Plot_Brain(_run, 'A_unc', 'proc')

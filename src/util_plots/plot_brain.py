@@ -73,7 +73,16 @@ class Plot_Brain(object):
             self.df = pd.read_csv(fpath, header=0, low_memory=False)
             self.A[mask] = self.df['A'].values
             self.tau[mask] = self.df['tau'].values
-        
+
+        '''
+        #Tests load data from .nii output file.
+        proc_fpath = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'proc.nii'
+        proc_obj = nib.load(proc_fpath)
+        proc_data = proc_obj.get_data()
+        self.tau = proc_data[:,:,:,1]
+        self.A = proc_data[:,:,:,4]
+        '''
+  
     def treat_data(self):
         if self.var == 'A':
             self.cmap = _cmap_d['cold_white_hot']

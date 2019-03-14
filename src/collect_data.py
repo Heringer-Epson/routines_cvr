@@ -36,7 +36,6 @@ class Collect_Data(object):
         
         mask = mask_obj.get_data().astype(bool)
         signal = self.img.get_data()
-        print signal.shape
         M['signal'] = signal[mask].astype(float) #Data only includes voxels within the brain.
 
         #make a time array.

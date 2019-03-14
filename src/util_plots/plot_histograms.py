@@ -108,6 +108,7 @@ class Plot_Hist(object):
         self.ax[0,0].axes.get_yaxis().set_visible(False)
 
         self.ax[0,1].set_xlabel(r'$\rm{log}\ \tau\ \rm{[s]}$', fontsize=fs)
+        #self.ax[0,1].set_xlabel(r'$\rm{log}\ \tau_{16}\ \rm{[s]}$', fontsize=fs)
         self.ax[0,1].set_xlim(self._run.logtau_lim[0],self._run.logtau_lim[1])
         self.ax[0,1].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
         self.ax[0,1].tick_params(axis='x', which='major', labelsize=fs, pad=8)
@@ -135,7 +136,7 @@ class Plot_Hist(object):
         self.ax[1,0].xaxis.set_major_locator(MultipleLocator(50.))
         self.ax[1,0].axes.get_yaxis().set_visible(False)   
 
-        self.ax[1,1].set_xlabel(r'$C\ \rm{[BOLD\ \%\ /\ s]}$', fontsize=fs)
+        self.ax[1,1].set_xlabel(r'$C\ \rm{[BOLD\ \%]}$', fontsize=fs)
         self.ax[1,1].set_xlim(self._run.C_lim[0],self._run.C_lim[1])
         self.ax[1,1].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
         self.ax[1,1].tick_params(axis='x', which='major', labelsize=fs, pad=8)
@@ -143,50 +144,50 @@ class Plot_Hist(object):
                              right=True, top=False)
         self.ax[1,1].tick_params('both', length=6, width=2., which='minor',
                              right=True, top=False) 
-        self.ax[1,1].xaxis.set_minor_locator(MultipleLocator(0.02))
-        self.ax[1,1].xaxis.set_major_locator(MultipleLocator(0.1))
+        self.ax[1,1].xaxis.set_minor_locator(MultipleLocator(10.))
+        self.ax[1,1].xaxis.set_major_locator(MultipleLocator(50.))
         self.ax[1,1].axes.get_yaxis().set_visible(False)  
 
-        self.ax[2,0].text(
-          -0.08, .5, r'Brain pdf', fontsize=fs, transform=self.ax[2,0].transAxes,
-          rotation=90., horizontalalignment='center',
-          verticalalignment='center')  
-        self.ax[2,0].set_xlabel(r'$\rm{log}\ \chi ^2$', fontsize=fs)
-        self.ax[2,0].set_xlim(4.,8.)
+        self.ax[2,0].set_xlabel(r'$D\ \rm{[BOLD\ \%]}$', fontsize=fs)
+        self.ax[2,0].set_xlim(self._run.C_lim[0],self._run.C_lim[1])
         self.ax[2,0].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
         self.ax[2,0].tick_params(axis='x', which='major', labelsize=fs, pad=8)
         self.ax[2,0].tick_params('both', length=12, width=2., which='major',
                              right=True, top=False)
         self.ax[2,0].tick_params('both', length=6, width=2., which='minor',
                              right=True, top=False) 
-        self.ax[2,0].xaxis.set_minor_locator(MultipleLocator(.2))
-        self.ax[2,0].xaxis.set_major_locator(MultipleLocator(1.))
-        self.ax[2,0].axes.get_yaxis().set_visible(False)   
+        self.ax[2,0].xaxis.set_minor_locator(MultipleLocator(10.))
+        self.ax[2,0].xaxis.set_major_locator(MultipleLocator(50.))
+        self.ax[2,0].axes.get_yaxis().set_visible(False)  
 
-        self.ax[2,1].set_xlabel(r'$\Delta (\tau)\ [\%]$', fontsize=fs)
-        self.ax[2,1].set_xlim(0.,200.)
+        self.ax[2,1].text(
+          -0.08, .5, r'Brain pdf', fontsize=fs, transform=self.ax[2,1].transAxes,
+          rotation=90., horizontalalignment='center',
+          verticalalignment='center')  
+        self.ax[2,1].set_xlabel(r'$\rm{log}\ \chi ^2$', fontsize=fs)
+        self.ax[2,1].set_xlim(4.,8.)
         self.ax[2,1].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
         self.ax[2,1].tick_params(axis='x', which='major', labelsize=fs, pad=8)
         self.ax[2,1].tick_params('both', length=12, width=2., which='major',
                              right=True, top=False)
         self.ax[2,1].tick_params('both', length=6, width=2., which='minor',
                              right=True, top=False) 
-        self.ax[2,1].xaxis.set_minor_locator(MultipleLocator(10.))
-        self.ax[2,1].xaxis.set_major_locator(MultipleLocator(50.))
-        self.ax[2,1].axes.get_yaxis().set_visible(False)  
-        
+        self.ax[2,1].xaxis.set_minor_locator(MultipleLocator(.2))
+        self.ax[2,1].xaxis.set_major_locator(MultipleLocator(1.))
+        self.ax[2,1].axes.get_yaxis().set_visible(False)   
+
     def retrieve_data(self):
         fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
                  + 'most_likely_pars.csv')
-        self.tau, tau_min, tau_max, self.A, self.B, self.C, self.chi2 = np.loadtxt(
-          fpath, skiprows=1, delimiter=',', usecols=(1,2,3,4,7,10,13), unpack=True)
+        self.tau, self.tau_min, self.tau_max, self.A, self.B, self.C, self.D, self.chi2 = np.loadtxt(
+          fpath, skiprows=1, delimiter=',', usecols=(1,2,3,4,7,10,13,16), unpack=True)
 
         fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
                  + 'estimated_A_tau_B.csv')
         self.tau_est, self.A_est, self.B_est = np.loadtxt(
           fpath, skiprows=1, delimiter=',', usecols=(1,2,4), unpack=True)          
         
-        self.tau_unc = np.divide(np.maximum(tau_min,tau_max),self.tau) * 100.
+        self.tau_unc = np.divide(np.maximum(self.tau_min,self.tau_max),self.tau) * 100.
         
         #Load values by Julien.
 
@@ -209,9 +210,10 @@ class Plot_Hist(object):
           self.ax[0,0],self.A,self.A_est,(self._run.A_lim[0],self._run.A_lim[1]),
           N_bins,[.1,.2],False)
         add_curves(
-          self.ax[0,1],np.log10(self.tau),np.log10(self.tau_est),
-          (self._run.logtau_lim[0],self._run.logtau_lim[1]),N_bins,
-          [np.nan,np.nan],False)
+         self.ax[0,1],np.log10(self.tau),np.log10(self.tau_est),
+         #self.ax[0,1],np.log10(self.tau_min),np.log10(self.tau_est),
+         (self._run.logtau_lim[0],self._run.logtau_lim[1]),N_bins,
+         [np.nan,np.nan],False)
         add_curves(
           self.ax[1,0],self.B,self.B_est,(self._run.B_lim[0],self._run.B_lim[1]),
           N_bins,[100.,20.],False)
@@ -219,10 +221,10 @@ class Plot_Hist(object):
           self.ax[1,1],self.C,np.nan,(self._run.C_lim[0],self._run.C_lim[1]),
           N_bins,[0.,0.05],False)
         add_curves(
-          self.ax[2,0],np.log10(self.chi2),np.nan,(4.,8.),
-          N_bins,[np.nan,np.nan],False)
+          self.ax[2,0],self.D,np.nan,(self._run.D_lim[0],self._run.D_lim[1]),
+          N_bins,[0.,0.05],False)
         add_curves(
-          self.ax[2,1],self.tau_unc,np.nan,(0.,200.),
+          self.ax[2,1],np.log10(self.chi2),np.nan,(4.,8.),
           N_bins,[np.nan,np.nan],False)
         
     def make_legend(self):
@@ -232,9 +234,6 @@ class Plot_Hist(object):
         self.ax[0,1].plot(
           [np.nan], [np.nan], marker='None', ls='-', lw=12., color=c[1],
           label=r'MCMC')
-        #self.ax[0,1].plot(
-        #  [np.nan], [np.nan], marker='None', ls=':', lw=2., color=c[1],
-        #  label=r'Gaussian fit')
         self.ax[0,1].legend(
           frameon=False, fontsize=fs, numpoints=1, labelspacing=0.2, loc=1)           
 

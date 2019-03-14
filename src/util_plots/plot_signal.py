@@ -83,10 +83,11 @@ class Plot_Signal(object):
         
         #Load best pars.
         fpath = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'most_likely_pars.csv'
-        tau, A, B, C = np.loadtxt(
-          fpath, skiprows=1, delimiter=',', usecols=(1,4,7,10), unpack=True)
-        self.tau_best, self.A_best, self.B_best, self.C_best =\
-          tau[self._idx_space], A[self._idx_space], B[self._idx_space], C[self._idx_space]
+        tau, A, B, C, D = np.loadtxt(
+          fpath, skiprows=1, delimiter=',', usecols=(1,4,7,10, 13), unpack=True)
+        self.tau_best, self.A_best, self.B_best, self.C_best, self.D_best =\
+          tau[self._idx_space], A[self._idx_space], B[self._idx_space],\
+          C[self._idx_space], D[self._idx_space]
 
         fpath_est = './../OUTPUT_FILES/RUNS/' + self._run.subdir + 'estimated_A_tau_B.csv'
         tau, A, B = np.loadtxt(
@@ -104,6 +105,7 @@ class Plot_Signal(object):
         #1., 0.2, 80., .03
 
         t, pCO2 = self.S['time'], self.S['pCO2']
+        ts = t / self._run.t_pivot
         y = self.S['signal_ns'][self._idx_space,:]
         yerr = self.S['signal_noise'][self._idx_space,:]
         pCO2 = self.S['pCO2']
@@ -113,7 +115,7 @@ class Plot_Signal(object):
 
         pCO2_conv_best = self.I(t, self.tau_best)
         y_model_best = (self.A_best * pCO2_conv_best
-                        + self.B_best+ self.C_best * t)
+                        + self.B_best + self.C_best * ts + self.D_best * ts**2.)
 
         self.ax.errorbar(
           t, y, yerr=yerr, ls='None', marker='o', color='k',

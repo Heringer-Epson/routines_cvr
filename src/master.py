@@ -7,6 +7,7 @@ from norm_and_smooth import Norm_Smooth
 from make_tau_interpolator import Tau_Interpolator
 from estimate_bestpars import Estimate_Bestpars
 from run_MCMC import Compute_Likelihoods
+from store_data import Store_Data
 from main_plotter import Main_Plotter
 
 class Master(object):
@@ -78,8 +79,9 @@ class Master(object):
         if self.do_run_models:
             Tau_Interpolator(self.run)
         if self.do_compute_likelihood:
-            Estimate_Bestpars(self.run)
-            Compute_Likelihoods(self.run)
+            #Estimate_Bestpars(self.run)
+            #Compute_Likelihoods(self.run)
+            Store_Data(self.run)
         if self.do_make_plots:
             Main_Plotter(self.run)            
                     
