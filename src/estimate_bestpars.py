@@ -80,7 +80,7 @@ class Estimate_Bestpars(object):
               fit_line, _run.tau, S, I, t, bound_low, bound_up)
             pool = Pool(5)
             output += pool.map(fit_given_idx,range(N_voxels))
-            #output += pool.map(fit_given_idx,range(1000))
+            #output += pool.map(fit_given_idx,range(100))
             pool.close()
             pool.join()
             for line in output:

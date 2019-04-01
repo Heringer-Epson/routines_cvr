@@ -87,10 +87,16 @@ class Master(object):
                     
 if __name__ == '__main__':  
     Master(
-      case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
-      norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
+      case='c02', dirpath='./../data_test/c02/', rest=(0., 110.),
+      norest=(46.,390.), step=(46., 130.), ramp=(220.,390.), 
       do_inspect_domain=False, do_collect_data=False, do_smooth=False,
       do_run_models=False, do_compute_likelihood=False, do_make_plots=True)
+
+    #Master(
+    #  case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
+    #  norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
+    #  do_inspect_domain=False, do_collect_data=True, do_smooth=False,
+    #  do_run_models=False, do_compute_likelihood=False, do_make_plots=False)
 
     #Master(
     #  case='patient', dirpath='./../data_test/patient1/', rest=(0., 110.),

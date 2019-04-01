@@ -65,6 +65,14 @@ class Input_Parameters(object):
             self.region_to_fit = 'norest'
             self.show_fig = False
             self.save_fig = True
+
+        if case == 'c02':
+            self.subdir = 'c02/'    
+            self.time_step = 2.4 #in units of second.
+            #self.region_to_fit = 'all'
+            self.region_to_fit = 'norest'
+            self.show_fig = False
+            self.save_fig = True
                 
         create_run_dir('./../OUTPUT_FILES/RUNS/' + self.subdir)
         print '    Done.\n'

@@ -44,16 +44,26 @@ class Collect_Data(object):
         duration = N_time * dt
         M['time'] = np.arange(dt, duration + 1.e-3, dt)      
 
-        #data_handling.save_pickle(_run.subdir, 'data.pkl', M)
-
-        #Collect tau and cvr data from Julien if available.
+        #Collect gray and white matter info if available.
         try:
-            tau_fpath = os.path.join(_run.dirpath, 'CVR_slopew.nii')
-            aux = nib.load(tau_fpath)
-            tau = aux.get_data()
-            taus = tau[mask].astype(float) #Seems like garb data. Not sure where
-            #the correct data is stored.
+            gf_fpath = os.path.join(_run.dirpath, 'grey_frac.nii')
+            aux = nib.load(gf_fpath)
+            frac = aux.get_data()
+            M['grey_frac'] = frac[mask].astype(float)
+
+            wf_fpath = os.path.join(_run.dirpath, 'white_frac.nii')
+            aux = nib.load(wf_fpath)
+            frac = aux.get_data()
+            M['white_frac'] = frac[mask].astype(float)
+
+            cf_fpath = os.path.join(_run.dirpath, 'csf_frac.nii')
+            aux = nib.load(cf_fpath)
+            frac = aux.get_data()
+            M['csf_frac'] = frac[mask].astype(float)            
+            #print M['white_frac'] + M['grey_frac'] + M['csf_frac']
         except:
             pass
 
+
+        data_handling.save_pickle(_run.subdir, 'data.pkl', M)
 

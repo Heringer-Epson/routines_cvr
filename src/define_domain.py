@@ -74,8 +74,7 @@ class Define_Domain(object):
             fpath = os.path.join('./../OUTPUT_FILES/RUNS/' + self._run.subdir
                                  + 'FIGURES/', 'Fig_pCO2.pdf')
             plt.savefig(fpath, format='pdf')
-        if self._run.show_fig:
-            plt.show()      
+        plt.show() #Always show figure when inspecting the domain.    
         
     def make_plot(self):
         self.set_fig_frame()

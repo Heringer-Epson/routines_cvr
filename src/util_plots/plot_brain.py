@@ -47,8 +47,8 @@ class Plot_Brain(object):
     def retrieve_data(self):
         
         #Load raw data.
-        fpath = os.path.join(self._run.dirpath, 'CVR_raw_scaled.nii')
-        img = nib.load(fpath)
+        #fpath = os.path.join(self._run.dirpath, 'CVR_raw_scaled.nii')
+        #img = nib.load(fpath)
         
         #Load brain mask -- mask out the voxels that fall outside the brain.
         fpath = os.path.join(self._run.dirpath, 'CVRmask.nii')

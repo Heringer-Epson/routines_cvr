@@ -141,7 +141,7 @@ class Compute_Likelihoods(object):
               self._run.A_lim, self._run.B_lim, self._run.C_lim, self._run.D_lim)
             pool = Pool(5)
             output += pool.map(MCMC_given_idx,range(N_voxels))
-            #output += pool.map(MCMC_given_idx,range(2000))
+            #output += pool.map(MCMC_given_idx,range(100))
             pool.close()
             pool.join()
             for line in output:
