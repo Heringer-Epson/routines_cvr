@@ -27,7 +27,6 @@ class Input_Parameters(object):
         self.A_lim = (-1.,1.)
         self.B_lim = (20.,180.)
         self.C_lim = (-100.,100.)
-        self.D_lim = (-100,100.)
         self.tau_lim = (1.,500.)
         
         #self.A_lim = (-2.5,2.5)

@@ -63,10 +63,10 @@ class Estimate_Bestpars(object):
         print 'Estimating parameters...'       
         fpath_S = './../OUTPUT_FILES/RUNS/' + _run.subdir + 'PICKLES/smooth.pkl'
         fpath_I = './../OUTPUT_FILES/RUNS/' + _run.subdir + 'PICKLES/tau_interp.pkl'
-        fpath_out = './../OUTPUT_FILES/RUNS/' + _run.subdir + 'estimated_A_tau_B.csv'
+        fpath_out = './../OUTPUT_FILES/RUNS/' + _run.subdir + 'estimated_pars.csv'
         with open(fpath_S, 'r') as fS, open(fpath_I, 'r') as fI,\
           open(fpath_out, 'w') as out:
-            out.write('voxel,tau_est,A_est,A_unc_est,B_est,B_unc_est')
+            out.write('voxel,tau,A,A_unc,B,B_unc')
             S, I = cPickle.load(fS), cPickle.load(fI)
             t = S['time']
             N_voxels = S['signal_ns'].shape[0]

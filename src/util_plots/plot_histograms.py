@@ -2,6 +2,7 @@
 
 import sys, os, time
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.ticker import MultipleLocator
@@ -11,38 +12,14 @@ from scipy.optimize import curve_fit
 mpl.rcParams['mathtext.fontset'] = 'stix'
 mpl.rcParams['mathtext.fontset'] = 'stix'
 mpl.rcParams['font.family'] = 'STIXGeneral'  
-c = ['#fdae61', '#3288bd']
+c = ['#e41a1c','#377eb8','#4daf4a']
 fs = 24.   
 
-def gaussian(x,mu,sigma):
-    return np.exp(-(x - mu)**2. / (2. * sigma**2.)) / np.sqrt(2. * np.pi * sigma**2.) 
-
-def add_curves(ax,qtty_MCMC,qtty_est,xlim,N_bins,gaussian_guess,add_gaussian):
+def add_curves(ax,qtty,xlim,N_bins,c):
     step = (xlim[1] - xlim[0]) / N_bins
     bins = np.arange(xlim[0], xlim[1] + 1.e-5 ,step)
-    n = ax.hist(
-      qtty_MCMC, bins, align='mid', normed=True, histtype='step',
-      color=c[1], lw=2.)
-    try:
-        ax.hist(
-          qtty_est, bins, align='mid', normed=True, histtype='step',lw=2.,
-          color=c[0], alpha=0.7)
-    except:
-        pass
+    ax.hist(qtty,bins,align='mid',normed=True,histtype='step',color=c,lw=2.)
     
-    if add_gaussian:
-        y_pdf, x = n[0], np.arange(xlim[0] + step / 2., xlim[1], step)
-        popt, pcov = curve_fit(gaussian, x, y_pdf, p0=gaussian_guess)
-        ax.plot(
-          x, gaussian(x,popt[0],popt[1]), marker='None', ls=':', lw=0.9,
-          color=c[1])  
-        ax.text(
-          0.05, .85, r'$\mu = $' + str(format(popt[0], '.2f')),
-          fontsize=fs, transform=ax.transAxes)
-        ax.text(
-          0.05, .75, r'$\sigma = $' + str(format(popt[1], '.2f')),
-          fontsize=fs, transform=ax.transAxes)
-
 class Plot_Hist(object):
     """
     Description:
@@ -77,117 +54,65 @@ class Plot_Hist(object):
     """         
     def __init__(self, _run):
         self._run = _run
-        self.fig, self.ax = plt.subplots(3,2, figsize=(10,14))
+        self.fig, self.ax = plt.subplots(1,2, figsize=(14,8))
       
-        self.tau, self.A, self.B, self.C, self.chi2 = None, None, None, None, None
-        self.tau_est, self.A_est, self.B_est = None, None, None
+        self.df_est, self.df_mcmc = None, None
+
         self.make_plot()
                 
     def set_fig_frame(self):
 
         plt.subplots_adjust(
-          left=.1, right=.95, bottom=.1, top=0.95, wspace=.2, hspace=0.4)
+          left=.07, right=.95, bottom=.15, top=0.9, wspace=.15, hspace=0.4)
 
-        self.ax[0,0].text(
-          -0.08, .5, r'Brain pdf', fontsize=fs, transform=self.ax[0,0].transAxes,
+        self.ax[0].text(
+          -0.08, .5, r'Brain pdf', fontsize=fs, transform=self.ax[0].transAxes,
           rotation=90., horizontalalignment='center',
           verticalalignment='center')        
-        self.ax[0,0].set_xlabel(r'$A\ \rm{[BOLD\ \%\ /\ mmHg]}$', fontsize=fs)
-        self.ax[0,0].set_ylabel(r'Brain pdf', fontsize=fs)
-        self.ax[0,0].set_xlim(self._run.A_lim[0],self._run.A_lim[1])
-        self.ax[0,0].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
-        self.ax[0,0].tick_params(axis='x', which='major', labelsize=fs, pad=8)
-        self.ax[0,0].tick_params('both', length=12, width=2., which='major',
+        self.ax[0].set_xlabel(r'$A\ \rm{[BOLD\ \%\ /\ mmHg]}$', fontsize=fs)
+        self.ax[0].set_ylabel(r'Brain pdf', fontsize=fs)
+        self.ax[0].set_xlim(self._run.A_lim[0],self._run.A_lim[1])
+        self.ax[0].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
+        self.ax[0].tick_params(axis='x', which='major', labelsize=fs, pad=8)
+        self.ax[0].tick_params('both', length=12, width=2., which='major',
                              right=True, top=False)
-        self.ax[0,0].tick_params('both', length=6, width=2., which='minor',
+        self.ax[0].tick_params('both', length=6, width=2., which='minor',
                              right=True, top=False) 
-        self.ax[0,0].xaxis.set_minor_locator(MultipleLocator(0.2))
-        self.ax[0,0].xaxis.set_major_locator(MultipleLocator(1.))
-        self.ax[0,0].yaxis.set_minor_locator(MultipleLocator(0.1))
-        self.ax[0,0].yaxis.set_major_locator(MultipleLocator(0.5))  
-        self.ax[0,0].axes.get_yaxis().set_visible(False)
+        self.ax[0].xaxis.set_minor_locator(MultipleLocator(0.2))
+        self.ax[0].xaxis.set_major_locator(MultipleLocator(1.))
+        self.ax[0].yaxis.set_minor_locator(MultipleLocator(0.1))
+        self.ax[0].yaxis.set_major_locator(MultipleLocator(0.5))  
+        self.ax[0].axes.get_yaxis().set_visible(False)
 
-        self.ax[0,1].set_xlabel(r'$\rm{log}\ \tau\ \rm{[s]}$', fontsize=fs)
-        #self.ax[0,1].set_xlabel(r'$\rm{log}\ \tau_{16}\ \rm{[s]}$', fontsize=fs)
-        self.ax[0,1].set_xlim(self._run.logtau_lim[0],self._run.logtau_lim[1])
-        self.ax[0,1].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
-        self.ax[0,1].tick_params(axis='x', which='major', labelsize=fs, pad=8)
-        self.ax[0,1].tick_params('both', length=12, width=2., which='major',
+        self.ax[1].set_xlabel(r'$\rm{log}\ \tau\ \rm{[s]}$', fontsize=fs)
+        self.ax[1].set_xlim(self._run.logtau_lim[0],self._run.logtau_lim[1])
+        self.ax[1].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
+        self.ax[1].tick_params(axis='x', which='major', labelsize=fs, pad=8)
+        self.ax[1].tick_params('both', length=12, width=2., which='major',
                              right=True, top=False)
-        self.ax[0,1].tick_params('both', length=6, width=2., which='minor',
+        self.ax[1].tick_params('both', length=6, width=2., which='minor',
                              right=True, top=False) 
-        self.ax[0,1].xaxis.set_minor_locator(MultipleLocator(0.2))
-        self.ax[0,1].xaxis.set_major_locator(MultipleLocator(1.))
-        self.ax[0,1].axes.get_yaxis().set_visible(False)       
+        self.ax[1].xaxis.set_minor_locator(MultipleLocator(0.2))
+        self.ax[1].xaxis.set_major_locator(MultipleLocator(1.))
+        self.ax[1].axes.get_yaxis().set_visible(False)       
        
-        self.ax[1,0].text(
-          -0.08, .5, r'Brain pdf', fontsize=fs, transform=self.ax[1,0].transAxes,
-          rotation=90., horizontalalignment='center',
-          verticalalignment='center')  
-        self.ax[1,0].set_xlabel(r'$B\ \rm{[BOLD\ \%]}$', fontsize=fs)
-        self.ax[1,0].set_xlim(self._run.B_lim[0],self._run.B_lim[1])
-        self.ax[1,0].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
-        self.ax[1,0].tick_params(axis='x', which='major', labelsize=fs, pad=8)
-        self.ax[1,0].tick_params('both', length=12, width=2., which='major',
-                             right=True, top=False)
-        self.ax[1,0].tick_params('both', length=6, width=2., which='minor',
-                             right=True, top=False) 
-        self.ax[1,0].xaxis.set_minor_locator(MultipleLocator(10.))
-        self.ax[1,0].xaxis.set_major_locator(MultipleLocator(50.))
-        self.ax[1,0].axes.get_yaxis().set_visible(False)   
-
-        self.ax[1,1].set_xlabel(r'$C\ \rm{[BOLD\ \%]}$', fontsize=fs)
-        self.ax[1,1].set_xlim(self._run.C_lim[0],self._run.C_lim[1])
-        self.ax[1,1].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
-        self.ax[1,1].tick_params(axis='x', which='major', labelsize=fs, pad=8)
-        self.ax[1,1].tick_params('both', length=12, width=2., which='major',
-                             right=True, top=False)
-        self.ax[1,1].tick_params('both', length=6, width=2., which='minor',
-                             right=True, top=False) 
-        self.ax[1,1].xaxis.set_minor_locator(MultipleLocator(10.))
-        self.ax[1,1].xaxis.set_major_locator(MultipleLocator(50.))
-        self.ax[1,1].axes.get_yaxis().set_visible(False)  
-
-        self.ax[2,0].set_xlabel(r'$D\ \rm{[BOLD\ \%]}$', fontsize=fs)
-        self.ax[2,0].set_xlim(self._run.C_lim[0],self._run.C_lim[1])
-        self.ax[2,0].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
-        self.ax[2,0].tick_params(axis='x', which='major', labelsize=fs, pad=8)
-        self.ax[2,0].tick_params('both', length=12, width=2., which='major',
-                             right=True, top=False)
-        self.ax[2,0].tick_params('both', length=6, width=2., which='minor',
-                             right=True, top=False) 
-        self.ax[2,0].xaxis.set_minor_locator(MultipleLocator(10.))
-        self.ax[2,0].xaxis.set_major_locator(MultipleLocator(50.))
-        self.ax[2,0].axes.get_yaxis().set_visible(False)  
-
-        self.ax[2,1].text(
-          -0.08, .5, r'Brain pdf', fontsize=fs, transform=self.ax[2,1].transAxes,
-          rotation=90., horizontalalignment='center',
-          verticalalignment='center')  
-        self.ax[2,1].set_xlabel(r'$\rm{log}\ \chi ^2$', fontsize=fs)
-        self.ax[2,1].set_xlim(4.,8.)
-        self.ax[2,1].tick_params(axis='y', which='major', labelsize=fs, pad=8)      
-        self.ax[2,1].tick_params(axis='x', which='major', labelsize=fs, pad=8)
-        self.ax[2,1].tick_params('both', length=12, width=2., which='major',
-                             right=True, top=False)
-        self.ax[2,1].tick_params('both', length=6, width=2., which='minor',
-                             right=True, top=False) 
-        self.ax[2,1].xaxis.set_minor_locator(MultipleLocator(.2))
-        self.ax[2,1].xaxis.set_major_locator(MultipleLocator(1.))
-        self.ax[2,1].axes.get_yaxis().set_visible(False)   
-
     def retrieve_data(self):
         fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
                  + 'most_likely_pars.csv')
-        self.tau, self.tau_min, self.tau_max, self.A, self.B, self.C, self.D, self.chi2 = np.loadtxt(
-          fpath, skiprows=1, delimiter=',', usecols=(1,2,3,4,7,10,13,16), unpack=True)
+        self.df_mcmc = pd.read_csv(fpath, header=0, low_memory=False)
+
+        #self.tau, self.tau_min, self.tau_max, self.A, self.B, self.C, self.chi2 = np.loadtxt(
+        #  fpath, skiprows=1, delimiter=',', usecols=(1,2,3,4,7,10,16), unpack=True)
 
         fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
                  + 'estimated_A_tau_B.csv')
-        self.tau_est, self.A_est, self.B_est = np.loadtxt(
-          fpath, skiprows=1, delimiter=',', usecols=(1,2,4), unpack=True)          
+        self.df_est = pd.read_csv(fpath, header=0, low_memory=False)
         
-        self.tau_unc = np.divide(np.maximum(self.tau_min,self.tau_max),self.tau) * 100.
+        
+        #self.tau_est, self.A_est, self.B_est = np.loadtxt(
+        #  fpath, skiprows=1, delimiter=',', usecols=(1,2,4), unpack=True)          
+        
+        #self.tau_unc = np.divide(np.maximum(self.tau_min,self.tau_max),self.tau) * 100.
         
         #Load values by Julien.
 
@@ -205,43 +130,46 @@ class Plot_Hist(object):
         print len(self.tau_est), len(self.tau), len(self.tau_unc)
 
     def plot_models(self):
-        N_bins = 100. #SAme number of steps in tau guesses when estimating pars.
+        N_bins = 100. #Same number of steps in tau guesses when estimating pars.
+
         add_curves(
-          self.ax[0,0],self.A,self.A_est,(self._run.A_lim[0],self._run.A_lim[1]),
-          N_bins,[.1,.2],False)
+          self.ax[0],self.df_est['A_est'].values,(self._run.A_lim[0],
+          self._run.A_lim[1]),N_bins,c[0])
         add_curves(
-         self.ax[0,1],np.log10(self.tau),np.log10(self.tau_est),
-         #self.ax[0,1],np.log10(self.tau_min),np.log10(self.tau_est),
-         (self._run.logtau_lim[0],self._run.logtau_lim[1]),N_bins,
-         [np.nan,np.nan],False)
+          self.ax[0],self.df_mcmc['A'].values,(self._run.A_lim[0],
+          self._run.A_lim[1]),N_bins,c[1])
         add_curves(
-          self.ax[1,0],self.B,self.B_est,(self._run.B_lim[0],self._run.B_lim[1]),
-          N_bins,[100.,20.],False)
+          self.ax[0],self.df_mcmc['A'].values - self.df_mcmc['A_l'].values,
+          (self._run.A_lim[0],self._run.A_lim[1]),N_bins,c[2])
+
         add_curves(
-          self.ax[1,1],self.C,np.nan,(self._run.C_lim[0],self._run.C_lim[1]),
-          N_bins,[0.,0.05],False)
+          self.ax[1],np.log10(self.df_est['tau_est'].values),
+          (self._run.logtau_lim[0],self._run.logtau_lim[1]),N_bins,c[0])
         add_curves(
-          self.ax[2,0],self.D,np.nan,(self._run.D_lim[0],self._run.D_lim[1]),
-          N_bins,[0.,0.05],False)
+          self.ax[1],np.log10(self.df_mcmc['tau'].values),
+          (self._run.logtau_lim[0],self._run.logtau_lim[1]),N_bins,c[1])
         add_curves(
-          self.ax[2,1],np.log10(self.chi2),np.nan,(4.,8.),
-          N_bins,[np.nan,np.nan],False)
+          self.ax[1],np.log10(self.df_mcmc['tau'].values - self.df_mcmc['tau_l'].values),
+          (self._run.logtau_lim[0],self._run.logtau_lim[1]),N_bins,c[2])
         
     def make_legend(self):
-        self.ax[0,1].plot(
+        self.ax[0].plot(
           [np.nan], [np.nan], marker='None', ls='-', lw=12., color=c[0],
-          alpha=0.5, label=r'$\chi^2$')
-        self.ax[0,1].plot(
+          label=r'$\chi^2$')
+        self.ax[0].plot(
+          [np.nan], [np.nan], marker='None', ls='-', lw=12., color=c[2],
+          label=r'MCMC: 16%')
+        self.ax[0].plot(
           [np.nan], [np.nan], marker='None', ls='-', lw=12., color=c[1],
-          label=r'MCMC')
-        self.ax[0,1].legend(
+          label=r'MCMC: 50%')
+        self.ax[0].legend(
           frameon=False, fontsize=fs, numpoints=1, labelspacing=0.2, loc=1)           
 
     def manage_output(self):
         if self._run.save_fig:
             fpath = os.path.join(
-              './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'FIGURES/Fig_hist.pdf')
-            plt.savefig(fpath, format='pdf')
+              './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'FIGURES/Fig_hist.png')
+            plt.savefig(fpath, format='png')
         if self._run.show_fig:
             plt.show()
         plt.close()

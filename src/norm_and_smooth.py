@@ -53,7 +53,12 @@ class Norm_Smooth(object):
             D = cPickle.load(fD)
             
             #Copy a few relevant data from data.pkl into the smooth dict.
-            S['time'], S['pCO2'] = D['time'], D['pCO2']
+            S['time'], S['ts'], S['pCO2'] = D['time'], D['ts'], D['pCO2']
+            try:
+                S['grey_frac'], S['white_frac'], S['csf_frac'] =\
+                  D['grey_frac'], D['white_frac'], D['csf_frac']
+            except:
+                pass
             
             #Compute the mean signal in time for each voxel and divide each voxel's
             #signal by its mean in time. Do the latter for all time steps.

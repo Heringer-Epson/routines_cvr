@@ -11,10 +11,8 @@ import matplotlib.colors as colors
 from numpy.ma import masked_array
 from nilearn.plotting.cm import _cmap_d
 
-
-var2col_est = {'tau': (1,), 'A': (2,), 'A_unc': (3,), 'B': (3,), 'B_unc': (4,)}
-var2col_proc = {'tau': (1,), 'tau_unc': (1,2,3), 'A': (4,), 'A_unc': (4,5,6),
-                'B': (7,), 'A_unc': (7,8,9)}
+pars2file = {'est': 'estimated_pars.csv', 'proc': 'most_likely_pars.csv',
+             'procgmwm': 'most_likely_pars_gmwm.csv'}
 
 #https://matplotlib.org/users/colormapnorms.html
 class Plot_Brain(object):
@@ -32,16 +30,15 @@ class Plot_Brain(object):
     --------
     TBW.
     """        
-    def __init__(self, _run, var, mode):
+    def __init__(self, _run, var, mode, gmwm=''):
         print 'Plotting brain maps...'
                 
         self._run = _run
-        self.var, self.mode = var, mode
+        self.var, self.mode, self.gmwm = var, mode, gmwm
         
         self.lims, self.linthresh, self.linscale = None, None, None
         self.img, self.mask, self.data, self.vals = None, None, None, None
         self.fig, self.norm, self.cmap = None, None, None
-        self.anat = None
         self.make_plot()
         
     def retrieve_data(self):
@@ -57,22 +54,12 @@ class Plot_Brain(object):
         self.mask = mask
 
         #Initialize variables.
-        self.A = np.zeros(mask.shape, dtype=float)
-        self.tau = np.zeros(mask.shape, dtype=float)
+        self.qtty = np.zeros(mask.shape, dtype=float)
 
         #Load relevant file. Estimated or processed values.
-        if self.mode == 'est':
-            fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
-                     + 'estimated_A_tau_B.csv')
-            self.df = pd.read_csv(fpath, header=0, low_memory=False)
-            self.A[mask] = self.df['A_est'].values
-            self.tau[mask] = self.df['tau_est'].values
-        elif self.mode == 'proc':
-            fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
-                     + 'most_likely_pars.csv')
-            self.df = pd.read_csv(fpath, header=0, low_memory=False)
-            self.A[mask] = self.df['A'].values
-            self.tau[mask] = self.df['tau'].values
+        fname = pars2file[self.mode + self.gmwm]
+        fpath = './../OUTPUT_FILES/RUNS/' + self._run.subdir + fname
+        self.df = pd.read_csv(fpath, header=0, low_memory=False)
 
         '''
         #Tests load data from .nii output file.
@@ -84,25 +71,32 @@ class Plot_Brain(object):
         '''
   
     def treat_data(self):
-        if self.var == 'A':
+        if self.var[0] == 'A':
             self.cmap = _cmap_d['cold_white_hot']
             self.lims = (-.7,.7)
-            self.norm = colors.Normalize(vmin=self.lims[0],vmax=self.lims[1])
-            self.A[self.A <= self.lims[0]] = self.lims[0]
-            self.A[self.A >= self.lims[1]] = self.lims[1]
-
-        if self.var == 'tau':
+        if self.var[0:3] == 'tau':
             self.cmap = mpl.cm.get_cmap('plasma_r')
-            self.tau = np.log10(self.tau)
-            self.lims = (0.,2.)
-            self.norm = colors.Normalize(vmin=self.lims[0],vmax=self.lims[1])
-            self.tau[self.tau <= self.lims[0]] = self.lims[0]
-            self.tau[self.tau >= self.lims[1]] = self.lims[1]
+            self.lims = (0.,2.)            
+            
+        self.norm = colors.Normalize(vmin=self.lims[0],vmax=self.lims[1])
+
+        if self.var == 'tau_l':
+            self.qtty[self.mask] = self.df['tau'].values - self.df['tau_l'].values      
+        else:
+            self.qtty[self.mask] = self.df[self.var].values
+        
+        if self.var[0:3] == 'tau':
+            self.qtty = np.log10(self.qtty)
+        
+        
+        self.qtty[self.qtty <= self.lims[0]] = self.lims[0]
+        self.qtty[self.qtty >= self.lims[1]] = self.lims[1]
+
 
     def loop_draw(self):
 
-        N_cols = int(np.sqrt(self.A.shape[-1])) + 1
-        N_rows = self.A.shape[-1] // N_cols + 1
+        N_cols = int(np.sqrt(self.qtty.shape[-1])) + 1
+        N_rows = self.qtty.shape[-1] // N_cols + 1
     
         #Set frame.
         self.fig, ax = plt.subplots(N_rows, N_cols, figsize=(15,12))
@@ -118,45 +112,27 @@ class Plot_Brain(object):
                 ax[i][j].set_frame_on(False)
                 ax[i][j].axes.get_xaxis().set_visible(False)
                 ax[i][j].axes.get_yaxis().set_visible(False)
-                if idx < self.A.shape[-1] - 2:              
-                    A_2D = self.A[:, :, idx].transpose()      
-                    tau_2D = self.tau[:, :, idx].transpose()        
+                if idx < self.qtty.shape[-1] - 2:              
+                    qtty_2D = self.qtty[:, :, idx].transpose()      
 
-                    if self.var == 'A':
-                        im = ax[i][j].imshow(
-                          A_2D, interpolation='spline36',norm=self.norm, 
-                          cmap=self.cmap, origin='upper', aspect='auto') 
-
-                    elif self.var == 'tau':
-
-
-                        im = ax[i][j].imshow(
-                          tau_2D, interpolation='spline36', 
-                          norm=self.norm,cmap=self.cmap,
-                          origin='upper', aspect='auto') 
-
-                        #tau_2D_Apos = masked_array(tau_2D,A_2D<0.) #Masks out!
-                        #tau_2D_Aneg = masked_array(tau_2D,A_2D>=0.) #Masks out!                        #im = ax[i][j].imshow(
-                        #  tau_2D_Apos, interpolation='nearest', 
-                        #  norm=self.norm,cmap=mpl.cm.get_cmap('summer_r'),
-                        #  origin='upper', aspect='auto') 
-                        #im = ax[i][j].imshow(
-                        #  tau_2D_Aneg, interpolation='nearest', 
-                        #  norm=self.norm,cmap=mpl.cm.get_cmap('cool'),
-                        #  origin='upper', aspect='auto') 
+                    im = ax[i][j].imshow(
+                      qtty_2D, interpolation='spline36',norm=self.norm, 
+                      cmap=self.cmap, origin='upper', aspect='auto') 
 
                     out = np.ma.masked_array(
                       self.mask[:, :, idx],self.mask[:, :, idx] == True)
                     im = ax[i][j].imshow(
                       out.transpose(), interpolation='nearest', 
                       cmap='Greys_r', origin='upper', aspect='auto')  
+                if i ==0 and j ==0:
+                    print qtty_2D
 
     def manage_output(self):
         if self._run.save_fig:
-            fname = 'Fig_map_' + self.var + '_' + self.mode + '.pdf'
+            fname = 'Fig_map_' + self.var + '.png'
             fpath = os.path.join(
               './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'FIGURES/' + fname)
-            plt.savefig(fpath, format='pdf', facecolor=self.fig.get_facecolor())
+            plt.savefig(fpath, format='png', facecolor=self.fig.get_facecolor())
         if self._run.show_fig:
             plt.show()
         plt.close()

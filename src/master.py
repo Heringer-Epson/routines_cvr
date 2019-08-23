@@ -6,7 +6,8 @@ from collect_data import Collect_Data
 from norm_and_smooth import Norm_Smooth
 from make_tau_interpolator import Tau_Interpolator
 from estimate_bestpars import Estimate_Bestpars
-from run_MCMC import Compute_Likelihoods
+from run_MCMC_default import Compute_Likelihoods
+from run_MCMC_gmwm import Likelihoods_GMWM
 from store_data import Store_Data
 from main_plotter import Main_Plotter
 
@@ -80,8 +81,9 @@ class Master(object):
             Tau_Interpolator(self.run)
         if self.do_compute_likelihood:
             #Estimate_Bestpars(self.run)
-            #Compute_Likelihoods(self.run)
-            Store_Data(self.run)
+            Compute_Likelihoods(self.run)
+            #Likelihoods_GMWM(self.run)
+            #Store_Data(self.run)
         if self.do_make_plots:
             Main_Plotter(self.run)            
                     
@@ -96,7 +98,7 @@ if __name__ == '__main__':
     #  case='default', dirpath='./../data_test/normal1/', rest=(0., 110.),
     #  norest=(70.,730.), step=(150., 240.), ramp=(460.,670.), 
     #  do_inspect_domain=False, do_collect_data=True, do_smooth=False,
-    #  do_run_models=False, do_compute_likelihood=False, do_make_plots=False)
+    #  do_run_models=False, do_compute_likelihood=False, do_make_plots=True)
 
     #Master(
     #  case='patient', dirpath='./../data_test/patient1/', rest=(0., 110.),

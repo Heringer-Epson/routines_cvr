@@ -43,6 +43,7 @@ class Collect_Data(object):
         dt = _run.time_step
         duration = N_time * dt
         M['time'] = np.arange(dt, duration + 1.e-3, dt)      
+        M['ts'] = M['time'] / _run.t_pivot
 
         #Collect gray and white matter info if available.
         try:

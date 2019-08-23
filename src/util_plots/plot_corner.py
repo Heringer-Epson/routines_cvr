@@ -15,6 +15,9 @@ mpl.rcParams['font.family'] = 'STIXGeneral'
 c = ['#fdae61', '#3288bd']
 fs = 14.  
 
+pars2file = {'est': 'estimated_pars.csv', 'proc': 'most_likely_pars.csv',
+             'procgmwm': 'most_likely_pars_gmwm.csv'}
+
 class Plot_Corner(object):
     """
     Description:
@@ -43,42 +46,52 @@ class Plot_Corner(object):
     -----------
     Heringer+ 2017: http://adsabs.harvard.edu/abs/2017ApJ...834...15H
     """         
-    def __init__(self, _run):
+    def __init__(self, _run, mode, gmwm=''):
         self._run = _run
+        self.mode, self.gmwm = mode, gmwm
+
         self.fig, self.ax = plt.subplots(2,2, figsize=(12,12))
-      
-        self.tau, self.A, self.B, self.C, self.chi2 = None, None, None, None, None
-        self.tau_est, self.A_est, self.B_est = None, None, None
         self.make_plot()
-            
         
     def retrieve_data(self):
-        fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
-                 + 'most_likely_pars.csv')
-        self.M = pd.read_csv(fpath, header=0, low_memory=False)
-
-        fpath = ('./../OUTPUT_FILES/RUNS/' + self._run.subdir
-                 + 'estimated_A_tau_B.csv')
-        self.E = pd.read_csv(fpath, header=0, low_memory=False)
+        fname = pars2file[self.mode + self.gmwm]
+        fpath = './../OUTPUT_FILES/RUNS/' + self._run.subdir + fname
+        self.df = pd.read_csv(fpath, header=0, low_memory=False)
 
     def make_corner_plot(self):
-        
-        data = np.column_stack((
-          self.M['C'].values, self.M['A'].values, 
-          np.log10(self.M['tau'].values), self.M['B'].values))
+                
+        if self.gmwm == '':
+            data = np.column_stack((
+              self.df['C'].values, self.df['A'].values, 
+              np.log10(self.df['tau'].values), self.df['B'].values))
 
-        figure = corner.corner(
-          data, labels=[r'$C\ \rm{[BOLD\ \%\ /\ s]}$',
-          r'$A\ \rm{[BOLD\ \%\ /\ mmHg]}$', r'$\rm{log}\ \tau\ \rm{[s]}$',
-          r'$B\ \rm{[BOLD\ \%]}$'], quantiles=[0.16, 0.5, 0.84],
-          show_titles=True, title_kwargs={'fontsize': fs},
-          label_kwargs={'fontsize': fs}) 
+            figure = corner.corner(
+              data, labels=[r'$C\ \rm{[BOLD\ \%\ /\ s]}$',
+              r'$A\ \rm{[BOLD\ \%\ /\ mmHg]}$', r'$\rm{log}\ \tau\ \rm{[s]}$',
+              r'$B\ \rm{[BOLD\ \%]}$'], quantiles=[0.16, 0.5, 0.84],
+              show_titles=True, title_kwargs={'fontsize': fs},
+              label_kwargs={'fontsize': fs}) 
+
+        if self.gmwm == 'gmwm':
+            data = np.column_stack((
+              self.df['C'].values, self.df['A_gm'].values, self.df['A_wm'].values, 
+              np.log10(self.df['tau_gm'].values), np.log10(self.df['tau_wm'].values),
+               self.df['B'].values))
+
+            figure = corner.corner(
+              data, labels=[r'$C\ \rm{[BOLD\ \%\ /\ s]}$',
+              r'$A_{gm}\ \rm{[BOLD\ \%\ /\ mmHg]}$',  r'$A_{wm}\ \rm{[BOLD\ \%\ /\ mmHg]}$',
+              r'$\rm{log}\ \tau_{gm}\ \rm{[s]}$', r'$\rm{log}\ \tau_{wm}\ \rm{[s]}$',
+              r'$B\ \rm{[BOLD\ \%]}$'], quantiles=[0.16, 0.5, 0.84],
+              show_titles=True, title_kwargs={'fontsize': fs},
+              label_kwargs={'fontsize': fs}) 
         
     def manage_output(self):
         if self._run.save_fig:
             fpath = os.path.join(
-              './../OUTPUT_FILES/RUNS/' + self._run.subdir, 'FIGURES/Fig_corner.pdf')
-            plt.savefig(fpath, format='pdf')
+              './../OUTPUT_FILES/RUNS/' + self._run.subdir,
+              'FIGURES/Fig_corner' + self.gmwm + '.png')
+            plt.savefig(fpath, format='png')
         if self._run.show_fig:
             plt.show()
         plt.close()
